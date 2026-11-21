@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anotador de La Escoba</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        felt: {
+                            800: '#14532d',
+                            900: '#0f3d21',
+                            950: '#082614',
+                        },
+                        gold: {
+                            400: '#facc15',
+                            500: '#eab308',
+                            600: '#ca8a04',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Animaciones sutiles y estilos personalizados */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+        /* Ocultar flechas en inputs numéricos */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-slate-950">
+
+    <!-- Cabecera -->
+    <header class="bg-felt-950 border-b border-emerald-800/60 sticky top-0 z-30 shadow-lg">
+        <div class="max-w-4xl mx-auto px-4 py-3.5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md shadow-amber-500/20 text-slate-950 font-extrabold text-xl">
+                    🪙
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white leading-tight">La Escoba</h1>
+                    <p class="text-xs text-emerald-300/80 font-medium" id="header-subtitle">Marcador Oficial</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <button onclick="openProfilesModal()" class="p-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 transition text-sm font-semibold flex items-center gap-1.5" title="Perfiles y Estadísticas">
+                    <span>👥</span>
+                    <span class="hidden sm:inline">Jugadores</span>
+                </button>
+                <div id="header-actions" class="hidden flex items-center gap-2">
+                    <button onclick="openRulesModal()" class="p-2.5 rounded-xl bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 transition text-sm font-medium flex items-center gap-1.5" title="Reglas de puntuación">
+                        <span>📖</span>
+                        <span class="hidden sm:inline">Reglas</span>
+                    </button>
+                    <button onclick="confirmNewGame()" class="p-2.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-800/60 text-rose-200 transition text-sm font-medium flex items-center gap-1.5">
+                        <span>🔄</span>
+                        <span class="hidden sm:inline">Nueva Partida</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenedor Principal -->
+    <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-6">
+
+        <!-- PANTALLA 1: CONFIGURACIÓN DE PARTIDA -->
+        <section id="setup-screen" class="animate-fade-in max-w-lg mx-auto">
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+                <div class="text-center mb-6">
+                    <span class="inline-block px-3 py-1 rounded-full bg-emerald-950 border border-emerald-800 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">Nueva Partida</span>
+                    <h2 class="text-2xl font-bold text-white">Configura la mesa</h2>
+                    <p class="text-slate-400 text-sm mt-1">Elige los jugadores y el puntaje objetivo para ganar.</p>
+                </div>
+
+                <!-- Tipo de Baraja -->
+                <div class="mb-6">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2.5">Tipo de Baraja</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" id="deck-type-selector">
+                        <button type="button" onclick="selectDeckType('40')" data-deck="40" class="deck-btn py-3 px-4 rounded-2xl border font-bold text-left transition bg-emerald-600 border-emerald-400 text-white shadow-lg shadow-emerald-900/40">
+                            <div class="flex items-center justify-between">
+                                <span>🇪🇸 Baraja 40 cartas</span>
+                                <span class="text-xs opacity-80">Clásica</span>
+                            </div>
+                            <span class="block text-[11px] font-normal opacity-80 mt-0.5">1-7, Sota (8), Caballo (9), Rey (10)</span>
+                        </button>
+                        <button type="button" onclick="selectDeckType('52')" data-deck="52" class="deck-btn py-3 px-4 rounded-2xl border border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-800 font-bold text-left transition">
+                            <div class="flex items-center justify-between">
+                                <span>🃏 Baraja 52 cartas</span>
+                                <span class="text-xs opacity-70">Con 8, 9, 10</span>
+                            </div>
+                            <span class="block text-[11px] font-normal opacity-75 mt-0.5">1-10, J (11), Q (12), K (13)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Puntos Objetivo -->
+                <div class="mb-6">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2.5">Puntos para ganar</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5" id="target-score-selector">
+                        <button type="button" onclick="selectTargetScore(15)" data-score="15" class="target-btn py-3 px-3 rounded-2xl border font-bold text-center transition bg-emerald-600 border-emerald-400 text-white shadow-lg shadow-emerald-900/40">
+                            15 pts
+                            <span class="block text-[10px] font-normal opacity-80">Clásica</span>
+                        </button>
+                        <button type="button" onclick="selectTargetScore(21)" data-score="21" class="target-btn py-3 px-3 rounded-2xl border border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-800 font-bold text-center transition">
+                            21 pts
+                            <span class="block text-[10px] font-normal opacity-70">Larga</span>
+                        </button>
+                        <button type="button" onclick="selectTargetScore(31)" data-score="31" class="target-btn py-3 px-3 rounded-2xl border border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-800 font-bold text-center transition">
+                            31 pts
+                            <span class="block text-[10px] font-normal opacity-70">Maratón</span>
+                        </button>
+                        <button type="button" onclick="selectTargetScore(0)" data-score="0" class="target-btn py-3 px-3 rounded-2xl border border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-800 font-bold text-center transition">
+                            ∞ Libre
+                            <span class="block text-[10px] font-normal opacity-70">Sin límite</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cantidad de Jugadores / Parejas -->
+                <div class="mb-6">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2.5">Participantes (Jugadores o Parejas)</label>
+                    <div class="grid grid-cols-3 gap-2.5" id="player-count-selector">
+                        <button type="button" onclick="setPlayerCount(2)" data-count="2" class="count-btn py-2.5 px-3 rounded-xl border border-emerald-400 bg-emerald-600 text-white font-semibold text-sm transition">
+                            2 Jugadores / Parejas
+                        </button>
+                        <button type="button" onclick="setPlayerCount(3)" data-count="3" class="count-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-800 font-semibold text-sm transition">
+                            3 Jugadores
+                        </button>
+                        <button type="button" onclick="setPlayerCount(4)" data-count="4" class="count-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-800 font-semibold text-sm transition">
+                            4 Jugadores
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Nombres de Jugadores -->
+                <div class="space-y-3 mb-8" id="player-inputs-container">
+                    <!-- Generado dinámicamente por JS -->
+                </div>
+
+                <button onclick="startGame()" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-base shadow-xl shadow-amber-500/20 transition transform active:scale-[0.99] flex items-center justify-center gap-2">
+                    <span>🃏</span>
+                    <span>Comenzar Partida</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- PANTALLA 2: TABLERO DE JUEGO -->
+        <section id="game-screen" class="hidden animate-fade-in space-y-6">
+            
+            <!-- Banner de Ganador (oculto hasta que alguien gane) -->
+            <div id="winner-banner" class="hidden bg-gradient-to-r from-amber-500/20 via-amber-400/20 to-amber-500/20 border-2 border-amber-400 rounded-3xl p-6 text-center shadow-2xl">
+                <div class="text-4xl mb-2">🏆</div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-amber-300" id="winner-title">¡Tenemos Ganador!</h2>
+                <p class="text-slate-200 mt-1 text-sm sm:text-base" id="winner-subtitle"></p>
+                <p id="winner-recorded-badge" class="hidden inline-block mt-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-semibold">
+                    ✅ Victoria registrada en el historial de jugadores
+                </p>
+                <div class="mt-4 flex flex-wrap justify-center gap-3">
+                    <button onclick="continuePastTarget()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold transition">
+                        Seguir jugando
+                    </button>
+                    <button onclick="resetSamePlayers()" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold shadow-lg transition">
+                        Revancha con mismos jugadores
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tarjetas de Puntuación Actual -->
+            <div id="scoreboard-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Generado por JS -->
+            </div>
+
+            <!-- Botones Principales: Anotar Ronda y Finalizar Partida -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button onclick="openRoundModal()" class="w-full sm:w-auto min-w-[240px] py-4 px-7 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-extrabold text-base shadow-xl shadow-emerald-900/50 transition transform active:scale-[0.98] flex items-center justify-center gap-2.5">
+                    <span class="text-xl">➕</span>
+                    <span>Anotar Mano / Ronda</span>
+                </button>
+                <button id="finish-game-btn" onclick="openFinishGameModal()" class="w-full sm:w-auto py-4 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 font-bold text-sm sm:text-base shadow-lg transition transform active:scale-[0.98] flex items-center justify-center gap-2">
+                    <span>🏁</span>
+                    <span>Finalizar Partida</span>
+                </button>
+            </div>
+
+            <!-- Historial de Rondas -->
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+                <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                    <h3 class="font-bold text-slate-200 flex items-center gap-2">
+                        <span>📜</span>
+                        <span>Historial de Manos</span>
+                        <span id="round-counter-badge" class="ml-1 px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 text-xs font-semibold">0</span>
+                    </h3>
+                    <button id="undo-btn" onclick="undoLastRound()" class="hidden text-xs font-semibold text-rose-400 hover:text-rose-300 bg-rose-950/60 hover:bg-rose-950 px-3 py-1.5 rounded-lg border border-rose-800/50 transition">
+                        ↩ Deshacer última
+                    </button>
+                </div>
+                
+                <div id="history-container" class="divide-y divide-slate-800/70 max-h-[380px] overflow-y-auto">
+                    <div class="p-8 text-center text-slate-500 text-sm">
+                        Aún no se ha anotado ninguna mano.<br>Pulsa <strong class="text-slate-300">"Anotar Mano / Ronda"</strong> al terminar de repartir.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL: ANOTAR NUEVA RONDA (CALCULADORA DE PUNTOS) -->
+    <div id="round-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+        <div class="bg-slate-900 border-t sm:border border-slate-700 w-full max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-fade-in max-h-[92vh] flex flex-col">
+            
+            <!-- Modal Header -->
+            <div class="px-6 py-4 bg-felt-950 border-b border-emerald-800/60 flex items-center justify-between shrink-0">
+                <div>
+                    <h3 class="text-lg font-extrabold text-white" id="modal-round-title">Anotar Mano #1</h3>
+                    <p class="text-xs text-emerald-300/80">Marca los logros de cada jugador en esta mano</p>
+                </div>
+                <button onclick="closeRoundModal()" class="w-9 h-9 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-bold transition">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1" id="round-form-body">
+                
+                <!-- 1. Escobas (Contadores individuales) -->
+                <div class="bg-slate-800/40 border border-slate-800 rounded-2xl p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h4 class="font-bold text-amber-400 text-sm flex items-center gap-1.5">
+                                <span>🧹</span> Escobas (+1 pt cada una)
+                            </h4>
+                            <p class="text-xs text-slate-400">Cantidad de escobas hechas en la mano</p>
+                        </div>
+                    </div>
+                    <div id="modal-escobas-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Generado dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- 2. Mayoría de Cartas (+1 pt) -->
+                <div class="bg-slate-800/40 border border-slate-800 rounded-2xl p-4">
+                    <div class="mb-3">
+                        <h4 class="font-bold text-emerald-400 text-sm flex items-center gap-1.5">
+                            <span>🃏</span> Mayoría de Cartas (+1 pt)
+                        </h4>
+                        <p class="text-xs text-slate-400">Quien tenga más de 20 cartas (si hay empate, nadie suma)</p>
+                    </div>
+                    <div id="modal-cartas-options" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <!-- Generado dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- 3. Mayoría de Oros (+1 pt) -->
+                <div class="bg-slate-800/40 border border-slate-800 rounded-2xl p-4">
+                    <div class="mb-3">
+                        <h4 class="font-bold text-yellow-400 text-sm flex items-center gap-1.5">
+                            <span>🪙</span> Mayoría de Oros (+1 pt)
+                        </h4>
+                        <p class="text-xs text-slate-400">Quien tenga más de 5 oros (si hay empate, nadie suma)</p>
+                    </div>
+                    <div id="modal-oros-options" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <!-- Generado dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- 4. Siete de Oros / Guindis (+1 pt) -->
+                <div class="bg-slate-800/40 border border-slate-800 rounded-2xl p-4">
+                    <div class="mb-3">
+                        <h4 class="font-bold text-amber-300 text-sm flex items-center gap-1.5">
+                            <span>7️⃣</span> Siete de Oros / Guindis (+1 pt)
+                        </h4>
+                        <p class="text-xs text-slate-400">Quien haya levantado el 7 de oros</p>
+                    </div>
+                    <div id="modal-siete-options" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <!-- Generado dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- 5. Mayoría de Sietes (+1 pt) -->
+                <div class="bg-slate-800/40 border border-slate-800 rounded-2xl p-4">
+                    <div class="mb-3">
+                        <h4 class="font-bold text-purple-400 text-sm flex items-center gap-1.5">
+                            <span>🎰</span> Mayoría de Sietes (+1 pt)
+                        </h4>
+                        <p class="text-xs text-slate-400">Quien haya reunido más sietes (si hay empate, nadie suma)</p>
+                    </div>
+                    <div id="modal-sietes-options" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <!-- Generado dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- 6. Setenta / Primera (+1 pt) -->
+                <div class="bg-slate-800/40 border border-slate-800 rounded-2xl p-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <div>
+                            <h4 class="font-bold text-sky-400 text-sm flex items-center gap-1.5">
+                                <span>🎯</span> Setenta / Primera (+1 pt)
+                            </h4>
+                            <p class="text-xs text-slate-400">Elige la mejor carta de cada palo por jugador o márcalo directo</p>
+                        </div>
+                        <div class="flex rounded-xl bg-slate-900 p-1 border border-slate-700/80 text-xs">
+                            <button type="button" id="btn-setenta-mode-calc" onclick="setSetentaMode('calc')" class="px-2.5 py-1 rounded-lg font-bold bg-sky-600 text-white transition">Por palos</button>
+                            <button type="button" id="btn-setenta-mode-manual" onclick="setSetentaMode('manual')" class="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white transition">Directo</button>
+                        </div>
+                    </div>
+
+                    <!-- Modo Calculadora por Palos -->
+                    <div id="modal-setenta-calc-container" class="space-y-3">
+                        <!-- Generado dinámicamente -->
+                    </div>
+
+                    <!-- Modo Selección Directa -->
+                    <div id="modal-setenta-options" class="hidden grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <!-- Generado dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- Resumen previo antes de guardar -->
+                <div class="bg-felt-950/90 border border-emerald-800/70 rounded-2xl p-4">
+                    <div class="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-2">Resumen de puntos a sumar:</div>
+                    <div id="modal-preview-summary" class="flex flex-wrap gap-2">
+                        <!-- Generado dinámicamente -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 bg-slate-950 border-t border-slate-800 flex items-center justify-end gap-3 shrink-0">
+                <button onclick="closeRoundModal()" class="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm transition">
+                    Cancelar
+                </button>
+                <button onclick="saveRound()" class="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-sm shadow-lg shadow-amber-500/20 transition">
+                    Guardar Puntos
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGLAS DE PUNTUACIÓN -->
+    <div id="rules-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fade-in">
+            <div class="px-6 py-4 bg-felt-950 border-b border-emerald-800/60 flex items-center justify-between">
+                <h3 class="text-lg font-extrabold text-white flex items-center gap-2">
+                    <span>📖</span> Puntuación de La Escoba
+                </h3>
+                <button onclick="closeRulesModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-bold">✕</button>
+            </div>
+            <div class="p-6 space-y-3 text-sm text-slate-300">
+                <div class="flex gap-3 items-start">
+                    <span class="text-lg">🧹</span>
+                    <div><strong class="text-white">Escobas:</strong> 1 punto por cada vez que un jugador limpia todas las cartas de la mesa sumando 15.</div>
+                </div>
+                <div class="flex gap-3 items-start">
+                    <span class="text-lg">🃏</span>
+                    <div><strong class="text-white">Cartas:</strong> 1 punto para el jugador/pareja que más cartas haya ganado al final de la mano (más de 20 en 2 jugadores).</div>
+                </div>
+                <div class="flex gap-3 items-start">
+                    <span class="text-lg">🪙</span>
+                    <div><strong class="text-white">Oros:</strong> 1 punto para quien tenga la mayoría de cartas del palo de oros (más de 5).</div>
+                </div>
+                <div class="flex gap-3 items-start">
+                    <span class="text-lg">7️⃣</span>
+                    <div><strong class="text-white">Siete de Oros (Guindis):</strong> 1 punto para quien haya capturado el 7 de oros.</div>
+                </div>
+                <div class="flex gap-3 items-start">
+                    <span class="text-lg">🎰</span>
+                    <div><strong class="text-white">Mayoría de Sietes:</strong> 1 punto para quien haya capturado más cartas de valor 7 (mínimo 3, o 2 si los demás tienen 1 o 0).</div>
+                </div>
+                <div class="flex gap-3 items-start">
+                    <span class="text-lg">🎯</span>
+                    <div><strong class="text-white">Setenta (Primera):</strong> 1 punto para quien logre la mayor suma tomando la carta de mayor valor de cada uno de los 4 palos (7=21, 6=18, As=16, 5=15, 4=14, 3=13, 2=12, figuras/8/9/10=10).</div>
+                </div>
+                <p class="text-xs text-slate-400 pt-2 border-t border-slate-800">
+                    * En caso de empate en Cartas, Oros, Sietes o Setenta, ningún jugador suma ese punto.
+                </p>
+            </div>
+            <div class="px-6 py-3 bg-slate-950 border-t border-slate-800 text-right">
+                <button onclick="closeRulesModal()" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm">Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PERFILES Y ESTADÍSTICAS DE JUGADORES -->
+    <div id="profiles-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+        <div class="bg-slate-900 border-t sm:border border-slate-700 w-full max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-fade-in max-h-[92vh] flex flex-col">
+            <!-- Header -->
+            <div class="px-6 py-4 bg-felt-950 border-b border-emerald-800/60 flex items-center justify-between shrink-0">
+                <div>
+                    <h3 class="text-lg font-extrabold text-white flex items-center gap-2">
+                        <span>👥</span> Jugadores y Estadísticas
+                    </h3>
+                    <p class="text-xs text-emerald-300/80">Historial acumulado de partidas ganadas, manos y récords</p>
+                </div>
+                <button onclick="closeProfilesModal()" class="w-9 h-9 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-bold transition">✕</button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1">
+    <!-- MODAL: FINALIZAR PARTIDA ANTICIPADA O MODO LIBRE -->
+    <div id="finish-game-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-3xl p-6 shadow-2xl animate-fade-in">
+            <div class="text-center mb-4">
+                <div class="text-4xl mb-2">🏁</div>
+                <h3 class="text-xl font-extrabold text-white">Finalizar Partida</h3>
+                <p class="text-sm text-slate-300 mt-1.5" id="finish-game-summary"></p>
+            </div>
+
+            <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 mb-5 space-y-2 text-xs text-slate-400">
+                <p class="font-semibold text-slate-200">¿Qué deseas hacer con el resultado de esta partida?</p>
+                <p>• <strong class="text-emerald-400">Guardar resultado:</strong> Cuenta como partida jugada y suma la victoria al líder actual en las estadísticas.</p>
+                <p>• <strong class="text-slate-300">Terminar sin contar partida:</strong> Cierra la partida sin sumar victoria ni partida jugada (las manos ya anotadas se mantienen).</p>
+            </div>
+
+            <div class="space-y-2.5">
+                <button id="finish-and-save-btn" onclick="finishGameNow(true)" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-sm shadow-lg transition">
+                    🏆 Finalizar y guardar victoria
+                </button>
+                <button onclick="finishGameNow(false)" class="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm transition">
+                    ⏹️ Finalizar sin contar partida
+                </button>
+                <button onclick="closeFinishGameModal()" class="w-full py-2.5 px-4 rounded-xl text-slate-400 hover:text-white font-semibold text-xs transition">
+                    Cancelar y seguir jugando
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFIRMACIÓN PERSONALIZADA (Sin alert/confirm nativos) -->
+    <div id="confirm-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-fade-in text-center">
+            <div class="text-3xl mb-3">⚠️</div>
+            <h3 class="text-lg font-bold text-white mb-1" id="confirm-title">¿Reiniciar partida?</h3>
+            <p class="text-sm text-slate-400 mb-6" id="confirm-message">Se perderán los puntos actuales y volverás a la pantalla de configuración.</p>
+            <div class="flex gap-3 justify-center">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm transition">
+                    Cancelar
+                </button>
+                <button id="confirm-accept-btn" class="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm transition">
+                    Sí, reiniciar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST DE NOTIFICACIÓN -->
+    <div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-slate-800 border border-slate-600 text-white px-4 py-2.5 rounded-full shadow-2xl text-sm font-medium flex items-center gap-2 animate-fade-in">
+        <span id="toast-icon">✅</span>
+        <span id="toast-text">Mensaje</span>
+    </div>
+
+    <script>
+        // ==========================================
+        // ESTADO DE LA APLICACIÓN
+        // ==========================================
+        const STORAGE_KEY = 'escoba_scoreboard_state_v1';
+        const PROFILES_STORAGE_KEY = 'escoba_player_profiles_v1';
+
+        let profiles = [];
+
+        let state = {
+            screen: 'setup', // 'setup' | 'game'
+            deckType: '40',  // '40' (1-7, S=8, C=9, R=10) | '52' (1-10, J=11, Q=12, K=13)
+            targetScore: 15, // 0 = Modo Libre (sin límite de puntos)
+            playerCount: 2,
+            players: [
+                { id: 0, name: 'Nosotros', score: 0, profileId: null },
+                { id: 1, name: 'Ellos', score: 0, profileId: null }
+            ],
+            rounds: [],
+            ignoreWinnerBanner: false,
+            gameResultRecorded: false,
+            manuallyFinished: false
+        };
+
+        // Valores oficiales de la Setenta / Primera según carta
+        const SETENTA_VALUES = {
+            '7': 21,
+            '6': 18,
+            '1': 16,
+            '5': 15,
+            '4': 14,
+            '3': 13,
+            '2': 12,
+            '8': 10,
+            '9': 10,
+            '10': 10,
+            'S': 10,
+            'C': 10,
+            'R': 10,
+            'J': 10,
+            'Q': 10,
+            'K': 10,
+            '0': 0
+        };
+
+        // Estado temporal del modal de nueva ronda
+        let draftRound = {
+            escobas: [],
+            cartas: -1,  // -1 = Nadie / Empate, 0..N = índice del jugador
+            oros: -1,
+            siete: -1,
+            sietes: -1,
+            setenta: -1,
+            setentaMode: 'calc', // 'calc' | 'manual'
+            setentaSuits: [] // Por jugador: { oros: '7', copas: '7', espadas: '7', bastos: '7' }
+        };
+
+        // ==========================================
+        // INICIALIZACIÓN Y PERSISTENCIA
+        // ==========================================
+        window.onload = function () {
+            loadProfiles();
+            loadState();
+            renderApp();
+        };
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+                console.error('Error guardando estado:', e);
+            }
+        }
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed && parsed.players && parsed.players.length >= 2) {
+                        state = {
+                            deckType: '40',
+                            gameResultRecorded: false,
+                            manuallyFinished: false,
+                            ...parsed
+                        };
+                    }
+                }
+            } catch (e) {
+                console.error('Error cargando estado:', e);
+            }
+        }
+
+        function saveProfiles() {
+            try {
+                localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+            } catch (e) {
+                console.error('Error guardando perfiles:', e);
+            }
+        }
+
+        function loadProfiles() {
+            try {
+                const saved = localStorage.getItem(PROFILES_STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed)) {
+                        profiles = parsed;
+                    }
+                }
+            } catch (e) {
+                console.error('Error cargando perfiles:', e);
+            }
+        }
+
+        function createProfileObject(name) {
+            return {
+                id: 'prof_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                name: name.trim(),
+                gamesPlayed: 0,
+                gamesWon: 0,
+                handsPlayed: 0,
+                handsWon: 0,
+                bestHandScore: 0,
+                totalEscobas: 0,
+                totalPoints: 0
+            };
+        }
+
+        function getOrCreateProfileByName(name) {
+            const clean = name.trim();
+            if (!clean) return null;
+            let existing = profiles.find(p => p.name.toLowerCase() === clean.toLowerCase());
+            if (!existing) {
+                existing = createProfileObject(clean);
+                profiles.push(existing);
+                saveProfiles();
+            }
+            return existing;
+        }
+
+        function showToast(text, icon = '✅') {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-text').textContent = text;
+            document.getElementById('toast-icon').textContent = icon;
+            toast.classList.remove('hidden');
+            clearTimeout(window.toastTimeout);
+            window.toastTimeout = setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 2600);
+        }
+
+        // ==========================================
+        // PANTALLA DE CONFIGURACIÓN (SETUP)
+        // ==========================================
+        function selectDeckType(deck) {
+            state.deckType = deck;
+            document.querySelectorAll('.deck-btn').forEach(btn => {
+                const btnDeck = btn.getAttribute('data-deck');
+                if (btnDeck === deck) {
+                    btn.className = 'deck-btn py-3 px-4 rounded-2xl border font-bold text-left transition bg-emerald-600 border-emerald-400 text-white shadow-lg shadow-emerald-900/40';
+                } else {
+                    btn.className = 'deck-btn py-3 px-4 rounded-2xl border border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-800 font-bold text-left transition';
+                }
+            });
+        }
+
+        function selectTargetScore(score) {
+            state.targetScore = score;
+            document.querySelectorAll('.target-btn').forEach(btn => {
+                const btnScore = parseInt(btn.getAttribute('data-score'), 10);
+                if (btnScore === score) {
+                    btn.className = 'target-btn py-3 px-3 rounded-2xl border font-bold text-center transition bg-emerald-600 border-emerald-400 text-white shadow-lg shadow-emerald-900/40';
+                } else {
+                    btn.className = 'target-btn py-3 px-3 rounded-2xl border border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-800 font-bold text-center transition';
+                }
+            });
+        }
+
+        function setPlayerCount(count) {
+            state.playerCount = count;
+            
+            // Actualizar estilos de botones
+            document.querySelectorAll('.count-btn').forEach(btn => {
+                const btnCount = parseInt(btn.getAttribute('data-count'), 10);
+                if (btnCount === count) {
+                    btn.className = 'count-btn py-2.5 px-3 rounded-xl border border-emerald-400 bg-emerald-600 text-white font-semibold text-sm transition';
+                } else {
+                    btn.className = 'count-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-800 font-semibold text-sm transition';
+                }
+            });
+
+            renderPlayerInputs();
+        }
+
+        function renderPlayerInputs() {
+            const container = document.getElementById('player-inputs-container');
+            const defaultNames2 = ['Nosotros', 'Ellos'];
+            const defaultNamesMany = ['Jugador 1', 'Jugador 2', 'Jugador 3', 'Jugador 4'];
+            
+            let html = '';
+            for (let i = 0; i < state.playerCount; i++) {
+                const existingName = (state.players[i] && state.players[i].name) 
+                    ? state.players[i].name 
+                    : (state.playerCount === 2 ? defaultNames2[i] : defaultNamesMany[i]);
+
+                const quickSelectHtml = profiles.length > 0 ? `
+                    <select onchange="applyProfileToInput(${i}, this.value)" class="bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-amber-300 font-semibold focus:outline-none focus:border-amber-400 max-w-[130px] shrink-0">
+                        <option value="">👤 Elegir...</option>
+                        ${profiles.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('')}
+                    </select>
+                ` : '';
+
+                html += `
+                    <div class="flex items-center gap-2.5 bg-slate-950/60 border border-slate-800 rounded-2xl px-3.5 py-2.5 focus-within:border-emerald-500 transition">
+                        <span class="w-7 h-7 rounded-lg bg-slate-800 text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0">
+                            ${i + 1}
+                        </span>
+                        <input 
+                            type="text" 
+                            id="player-name-input-${i}" 
+                            value="${escapeHtml(existingName)}" 
+                            placeholder="Nombre ${i + 1}"
+                            maxlength="20"
+                            class="w-full bg-transparent text-white font-semibold text-sm focus:outline-none placeholder-slate-600"
+                        />
+                        ${quickSelectHtml}
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        function applyProfileToInput(index, name) {
+            if (!name) return;
+            const input = document.getElementById(`player-name-input-${index}`);
+            if (input) input.value = name;
+        }
+
+        function startGame() {
+            const newPlayers = [];
+            for (let i = 0; i < state.playerCount; i++) {
+                const input = document.getElementById(`player-name-input-${i}`);
+                const rawName = input ? input.value.trim() : '';
+                const fallback = state.playerCount === 2 ? (i === 0 ? 'Nosotros' : 'Ellos') : `Jugador ${i + 1}`;
+                const finalName = rawName || fallback;
+
+                // Vincular o crear perfil automáticamente si no es un nombre genérico por defecto
+                const isGenericDefault = ['nosotros', 'ellos', 'jugador 1', 'jugador 2', 'jugador 3', 'jugador 4'].includes(finalName.toLowerCase());
+                let profile = profiles.find(p => p.name.toLowerCase() === finalName.toLowerCase()) || null;
+                if (!profile && !isGenericDefault) {
+                    profile = getOrCreateProfileByName(finalName);
+                }
+
+                newPlayers.push({
+                    id: i,
+                    name: finalName,
+                    score: 0,
+                    profileId: profile ? profile.id : null
+                });
+            }
+
+            state.players = newPlayers;
+            state.rounds = [];
+            state.screen = 'game';
+            state.ignoreWinnerBanner = false;
+            state.gameResultRecorded = false;
+            state.manuallyFinished = false;
+            saveState();
+            renderApp();
+        }
+
+        // ==========================================
+        // RENDERIZADO PRINCIPAL DEL TABLERO
+        // ==========================================
+        function renderApp() {
+            const setupScreen = document.getElementById('setup-screen');
+            const gameScreen = document.getElementById('game-screen');
+            const headerActions = document.getElementById('header-actions');
+            const subtitle = document.getElementById('header-subtitle');
+
+            if (state.screen === 'setup') {
+                setupScreen.classList.remove('hidden');
+                gameScreen.classList.add('hidden');
+                headerActions.classList.add('hidden');
+                subtitle.textContent = 'Marcador Oficial';
+                selectDeckType(state.deckType || '40');
+                selectTargetScore(state.targetScore !== undefined ? state.targetScore : 15);
+                setPlayerCount(state.playerCount);
+            } else {
+                setupScreen.classList.add('hidden');
+                gameScreen.classList.remove('hidden');
+                headerActions.classList.remove('hidden');
+                const deckLabel = state.deckType === '52' ? 'Baraja 52 (J=11, Q=12, K=13)' : 'Baraja 40';
+                const targetLabel = state.targetScore === 0 ? 'Modo Libre (∞)' : `Meta: ${state.targetScore} pts`;
+                subtitle.textContent = `${targetLabel} · ${deckLabel}`;
+                renderScoreboard();
+                renderHistory();
+                checkWinner();
+            }
+        }
+
+        function renderScoreboard() {
+            const grid = document.getElementById('scoreboard-grid');
+            // Ajustar columnas según cantidad de jugadores
+            grid.className = state.players.length === 3 
+                ? 'grid grid-cols-1 sm:grid-cols-3 gap-4' 
+                : 'grid grid-cols-1 sm:grid-cols-2 gap-4';
+
+            const maxScore = Math.max(...state.players.map(p => p.score));
+            const isFreeMode = state.targetScore === 0;
+
+            grid.innerHTML = state.players.map((player) => {
+                const isLeading = maxScore > 0 && player.score === maxScore;
+                const progressPct = isFreeMode 
+                    ? (maxScore > 0 ? Math.round((player.score / maxScore) * 100) : 0)
+                    : Math.min(100, Math.round((player.score / state.targetScore) * 100));
+                const reachedTarget = isFreeMode 
+                    ? (state.manuallyFinished && isLeading)
+                    : (player.score >= state.targetScore);
+
+                // Contar escobas totales del jugador en la partida
+                const totalEscobas = state.rounds.reduce((acc, r) => acc + (r.escobas[player.id] || 0), 0);
+
+                return `
+                    <div class="relative bg-slate-900 border ${reachedTarget ? 'border-amber-400 shadow-lg shadow-amber-500/10' : (isLeading ? 'border-emerald-500/60' : 'border-slate-800')} rounded-3xl p-5 shadow-xl transition">
+                        <div class="flex items-start justify-between gap-2 mb-3">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="font-extrabold text-lg text-white truncate max-w-[160px]">${escapeHtml(player.name)}</h3>
+                                    ${isLeading ? '<span class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-semibold">👑 Líder</span>' : ''}
+                                </div>
+                                <p class="text-xs text-slate-400 mt-0.5">
+                                    🧹 ${totalEscobas} ${totalEscobas === 1 ? 'escoba' : 'escobas'} en total
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-4xl font-black tracking-tight ${reachedTarget ? 'text-amber-400' : 'text-white'}">${player.score}</span>
+                                <span class="text-xs text-slate-500 font-semibold block">${isFreeMode ? 'pts acumulados' : `/ ${state.targetScore} pts`}</span>
+                            </div>
+                        </div>
+
+                        <!-- Barra de progreso -->
+                        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500 ${reachedTarget ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-emerald-500 to-emerald-400'}" style="width: ${progressPct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history-container');
+            const badge = document.getElementById('round-counter-badge');
+            const undoBtn = document.getElementById('undo-btn');
+
+            badge.textContent = state.rounds.length;
+
+            if (state.rounds.length === 0) {
+                undoBtn.classList.add('hidden');
+                container.innerHTML = `
+                    <div class="p-8 text-center text-slate-500 text-sm">
+                        Aún no se ha anotado ninguna mano.<br>Pulsa <strong class="text-slate-300">"Anotar Mano / Ronda"</strong> al terminar de repartir.
+                    </div>
+                `;
+                return;
+            }
+
+            undoBtn.classList.remove('hidden');
+
+            // Mostrar de la más reciente a la más antigua
+            const reversedRounds = [...state.rounds].reverse();
+
+            container.innerHTML = reversedRounds.map((round) => {
+                const badgesHtml = state.players.map((p) => {
+                    const pts = round.roundTotals[p.id];
+                    const details = [];
+                    if (round.escobas[p.id] > 0) details.push(`🧹×${round.escobas[p.id]}`);
+                    if (round.cartas === p.id) details.push('🃏Cartas');
+                    if (round.oros === p.id) details.push('🪙Oros');
+                    if (round.siete === p.id) details.push('7️⃣7 Oros');
+                    if (round.sietes === p.id) details.push('🎰Sietes');
+                    if (round.setenta === p.id) {
+                        const scoreLabel = round.setentaScores && round.setentaScores[p.id] !== undefined 
+                            ? ` (${round.setentaScores[p.id]})` 
+                            : '';
+                        details.push(`🎯Setenta${scoreLabel}`);
+                    }
+
+                    return `
+                        <div class="flex flex-col bg-slate-950/70 border border-slate-800/80 rounded-xl px-3 py-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs font-semibold text-slate-300 truncate">${escapeHtml(p.name)}</span>
+                                <span class="text-sm font-extrabold ${pts > 0 ? 'text-emerald-400' : 'text-slate-500'}">+${pts}</span>
+                            </div>
+                            <div class="text-[11px] text-slate-400 mt-1 min-h-[16px]">
+                                ${details.length > 0 ? details.join(' · ') : '<span class="opacity-40">Sin puntos</span>'}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="p-4 hover:bg-slate-800/20 transition">
+                        <div class="flex items-center justify-between mb-2.5">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Mano #${round.roundNum}</span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-${state.players.length > 2 ? state.players.length : 2} gap-2">
+                            ${badgesHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function checkWinner() {
+            const banner = document.getElementById('winner-banner');
+            const recordedBadge = document.getElementById('winner-recorded-badge');
+            const finishBtn = document.getElementById('finish-game-btn');
+
+            if (finishBtn) {
+                if (state.manuallyFinished) {
+                    finishBtn.classList.add('hidden');
+                } else {
+                    finishBtn.classList.remove('hidden');
+                }
+            }
+
+            if (state.ignoreWinnerBanner) {
+                banner.classList.add('hidden');
+                return;
+            }
+
+            const isFreeMode = state.targetScore === 0;
+            let contenders = [];
+
+            if (state.manuallyFinished) {
+                contenders = [...state.players];
+            } else if (!isFreeMode) {
+                contenders = state.players.filter(p => p.score >= state.targetScore);
+            }
+
+            if (contenders.length === 0) {
+                banner.classList.add('hidden');
+                return;
+            }
+
+            // Ordenar de mayor a menor puntuación
+            contenders.sort((a, b) => b.score - a.score);
+            const topScore = contenders[0].score;
+            const winners = contenders.filter(p => p.score === topScore);
+
+            banner.classList.remove('hidden');
+            const titleEl = document.getElementById('winner-title');
+            const subEl = document.getElementById('winner-subtitle');
+
+            if (winners.length === 1 && topScore > 0) {
+                titleEl.textContent = `¡${winners[0].name} gana la partida!`;
+                subEl.textContent = isFreeMode || state.manuallyFinished
+                    ? `Partida finalizada con ${winners[0].score} puntos tras ${state.rounds.length} ${state.rounds.length === 1 ? 'mano' : 'manos'}.`
+                    : `Alcanzó ${winners[0].score} puntos (meta de ${state.targetScore}).`;
+
+                // Registrar partida ganada/jugada automáticamente si alcanzó la meta en modo con límite
+                if (!state.manuallyFinished && !state.gameResultRecorded) {
+                    recordCompletedGameStats(winners[0].id);
+                    state.gameResultRecorded = true;
+                    saveState();
+                }
+
+                if (recordedBadge) {
+                    if (state.gameResultRecorded) {
+                        recordedBadge.classList.remove('hidden');
+                    } else {
+                        recordedBadge.classList.add('hidden');
+                    }
+                }
+            } else if (topScore === 0) {
+                titleEl.textContent = `Partida finalizada sin puntos`;
+                subEl.textContent = `Todos terminaron con 0 puntos.`;
+                if (recordedBadge) recordedBadge.classList.add('hidden');
+            } else {
+                const names = winners.map(w => w.name).join(' y ');
+                titleEl.textContent = `¡Empate en la cima!`;
+                subEl.textContent = state.manuallyFinished
+                    ? `${names} terminaron empatados con ${topScore} puntos.`
+                    : `${names} están empatados con ${topScore} puntos. ¡Jueguen una mano de desempate!`;
+                if (recordedBadge) recordedBadge.classList.add('hidden');
+            }
+        }
+
+        function recordCompletedGameStats(winnerPlayerId) {
+            let anyUpdated = false;
+            state.players.forEach(p => {
+                if (!p.profileId) return;
+                const prof = profiles.find(pr => pr.id === p.profileId);
+                if (!prof) return;
+                prof.gamesPlayed += 1;
+                if (p.id === winnerPlayerId) {
+                    prof.gamesWon += 1;
+                }
+                anyUpdated = true;
+            });
+            if (anyUpdated) saveProfiles();
+        }
+
+        function updateProfilesOnRoundSaved(round) {
+            const maxRoundPts = Math.max(...round.roundTotals);
+            const topScorers = round.roundTotals
+                .map((pts, idx) => ({ pts, idx }))
+                .filter(item => item.pts === maxRoundPts && maxRoundPts > 0);
+            // Solo cuenta como "mano ganada" si un jugador sacó más puntos que los demás en esa mano
+            const handWinnerIdx = topScorers.length === 1 ? topScorers[0].idx : -1;
+
+            let anyUpdated = false;
+            state.players.forEach((p, idx) => {
+                if (!p.profileId) return;
+                const prof = profiles.find(pr => pr.id === p.profileId);
+                if (!prof) return;
+
+                const pts = round.roundTotals[idx] || 0;
+                const esc = round.escobas[idx] || 0;
+
+                prof.handsPlayed += 1;
+                if (handWinnerIdx === idx) prof.handsWon += 1;
+                if (pts > prof.bestHandScore) prof.bestHandScore = pts;
+                prof.totalEscobas += esc;
+                prof.totalPoints += pts;
+                anyUpdated = true;
+            });
+            if (anyUpdated) saveProfiles();
+        }
+
+        function revertProfilesOnUndo(lastRound) {
+            const maxRoundPts = Math.max(...lastRound.roundTotals);
+            const topScorers = lastRound.roundTotals
+                .map((pts, idx) => ({ pts, idx }))
+                .filter(item => item.pts === maxRoundPts && maxRoundPts > 0);
+            const handWinnerIdx = topScorers.length === 1 ? topScorers[0].idx : -1;
+
+            let anyUpdated = false;
+            state.players.forEach((p, idx) => {
+                if (!p.profileId) return;
+                const prof = profiles.find(pr => pr.id === p.profileId);
+                if (!prof) return;
+
+                const pts = lastRound.roundTotals[idx] || 0;
+                const esc = lastRound.escobas[idx] || 0;
+
+                prof.handsPlayed = Math.max(0, prof.handsPlayed - 1);
+                if (handWinnerIdx === idx) prof.handsWon = Math.max(0, prof.handsWon - 1);
+                prof.totalEscobas = Math.max(0, prof.totalEscobas - esc);
+                prof.totalPoints = Math.max(0, prof.totalPoints - pts);
+                anyUpdated = true;
+            });
+            if (anyUpdated) saveProfiles();
+        }
+
+        function continuePastTarget() {
+            state.ignoreWinnerBanner = true;
+            state.manuallyFinished = false;
+            saveState();
+            renderScoreboard();
+            checkWinner();
+        }
+
+        function openFinishGameModal() {
+            if (state.rounds.length === 0) {
+                showToast('Aún no se ha jugado ninguna mano', '⚠️');
+                return;
+            }
+
+            const sorted = [...state.players].sort((a, b) => b.score - a.score);
+            const topScore = sorted[0].score;
+            const leaders = sorted.filter(p => p.score === topScore);
+            const summaryEl = document.getElementById('finish-game-summary');
+            const saveBtn = document.getElementById('finish-and-save-btn');
+
+            if (leaders.length === 1 && topScore > 0) {
+                summaryEl.innerHTML = `Lidera <strong class="text-amber-400">${escapeHtml(leaders[0].name)}</strong> con <strong class="text-white">${topScore} puntos</strong> en ${state.rounds.length} ${state.rounds.length === 1 ? 'mano' : 'manos'}.`;
+                saveBtn.classList.remove('hidden');
+            } else {
+                const names = leaders.map(l => escapeHtml(l.name)).join(' y ');
+                summaryEl.innerHTML = `Hay empate entre <strong class="text-amber-400">${names}</strong> con <strong class="text-white">${topScore} puntos</strong>.`;
+                saveBtn.classList.add('hidden');
+            }
+
+            document.getElementById('finish-game-modal').classList.remove('hidden');
+        }
+
+        function closeFinishGameModal() {
+            document.getElementById('finish-game-modal').classList.add('hidden');
+        }
+
+        function finishGameNow(recordStats) {
+            closeFinishGameModal();
+            state.manuallyFinished = true;
+            state.ignoreWinnerBanner = false;
+
+            if (recordStats && !state.gameResultRecorded) {
+                const sorted = [...state.players].sort((a, b) => b.score - a.score);
+                const topScore = sorted[0].score;
+                const leaders = sorted.filter(p => p.score === topScore);
+                if (leaders.length === 1 && topScore > 0) {
+                    recordCompletedGameStats(leaders[0].id);
+                    state.gameResultRecorded = true;
+                }
+            }
+
+            saveState();
+            renderScoreboard();
+            checkWinner();
+            showToast(recordStats ? 'Partida finalizada y guardada' : 'Partida finalizada', '🏁');
+        }
+
+        // ==========================================
+        // MODAL: ANOTAR NUEVA RONDA
+        // ==========================================
+        function openRoundModal() {
+            draftRound = {
+                escobas: state.players.map(() => 0),
+                cartas: -1,
+                oros: -1,
+                siete: -1,
+                sietes: -1,
+                setenta: -1,
+                setentaMode: 'calc',
+                setentaSuits: state.players.map(() => ({
+                    oros: '7',
+                    copas: '7',
+                    espadas: '7',
+                    bastos: '7'
+                }))
+            };
+
+            document.getElementById('modal-round-title').textContent = `Anotar Mano #${state.rounds.length + 1}`;
+            setSetentaMode('calc', false);
+            renderRoundModalControls();
+            recalculateSetentaFromSuits();
+            updateDraftPreview();
+            document.getElementById('round-modal').classList.remove('hidden');
+        }
+
+        function closeRoundModal() {
+            document.getElementById('round-modal').classList.add('hidden');
+        }
+
+        function setSetentaMode(mode, shouldRecalc = true) {
+            draftRound.setentaMode = mode;
+            const calcBtn = document.getElementById('btn-setenta-mode-calc');
+            const manualBtn = document.getElementById('btn-setenta-mode-manual');
+            const calcContainer = document.getElementById('modal-setenta-calc-container');
+            const manualContainer = document.getElementById('modal-setenta-options');
+
+            if (mode === 'calc') {
+                calcBtn.className = 'px-2.5 py-1 rounded-lg font-bold bg-sky-600 text-white transition';
+                manualBtn.className = 'px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white transition';
+                calcContainer.classList.remove('hidden');
+                manualContainer.classList.add('hidden');
+                if (shouldRecalc) {
+                    recalculateSetentaFromSuits();
+                    updateDraftPreview();
+                }
+            } else {
+                manualBtn.className = 'px-2.5 py-1 rounded-lg font-bold bg-sky-600 text-white transition';
+                calcBtn.className = 'px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white transition';
+                calcContainer.classList.add('hidden');
+                manualContainer.classList.remove('hidden');
+                renderCategoryOptions('setenta', 'modal-setenta-options', 'Empate / Nadie');
+            }
+        }
+
+        function getDeckCardOptions() {
+            const common = [
+                { val: '7', label: '7 (21 pts)' },
+                { val: '6', label: '6 (18 pts)' },
+                { val: '1', label: 'As / 1 (16 pts)' },
+                { val: '5', label: '5 (15 pts)' },
+                { val: '4', label: '4 (14 pts)' },
+                { val: '3', label: '3 (13 pts)' },
+                { val: '2', label: '2 (12 pts)' }
+            ];
+
+            if (state.deckType === '52') {
+                return [
+                    ...common,
+                    { val: '10', label: '10 (10 pts)' },
+                    { val: '9', label: '9 (10 pts)' },
+                    { val: '8', label: '8 (10 pts)' },
+                    { val: 'J', label: 'J - 11 (10 pts)' },
+                    { val: 'Q', label: 'Q - 12 (10 pts)' },
+                    { val: 'K', label: 'K - 13 (10 pts)' },
+                    { val: '0', label: 'Sin cartas (0)' }
+                ];
+            }
+
+            return [
+                ...common,
+                { val: 'S', label: 'Sota - 8 (10 pts)' },
+                { val: 'C', label: 'Caballo - 9 (10 pts)' },
+                { val: 'R', label: 'Rey - 10 (10 pts)' },
+                { val: '0', label: 'Sin cartas (0)' }
+            ];
+        }
+
+        function getSuitLabels() {
+            if (state.deckType === '52') {
+                return [
+                    { key: 'oros', icon: '♦️', name: 'Oros / Diam.' },
+                    { key: 'copas', icon: '♥️', name: 'Copas / Coraz.' },
+                    { key: 'espadas', icon: '♠️', name: 'Espadas / Picas' },
+                    { key: 'bastos', icon: '♣️', name: 'Bastos / Tréb.' }
+                ];
+            }
+            return [
+                { key: 'oros', icon: '🪙', name: 'Oros' },
+                { key: 'copas', icon: '🍷', name: 'Copas' },
+                { key: 'espadas', icon: '⚔️', name: 'Espadas' },
+                { key: 'bastos', icon: '🪵', name: 'Bastos' }
+            ];
+        }
+
+        function renderSetentaCalculator() {
+            const container = document.getElementById('modal-setenta-calc-container');
+            const cardOptions = getDeckCardOptions();
+            const suits = getSuitLabels();
+
+            container.innerHTML = state.players.map((p, pIdx) => {
+                const playerSuits = draftRound.setentaSuits[pIdx];
+                const totalPts = calculatePlayerSetenta(pIdx);
+                const isWinner = draftRound.setenta === pIdx;
+
+                const selectsHtml = suits.map(s => {
+                    const currentVal = playerSuits[s.key];
+                    const optionsHtml = cardOptions.map(opt => 
+                        `<option value="${opt.val}" ${currentVal === opt.val ? 'selected' : ''}>${opt.label}</option>`
+                    ).join('');
+
+                    return `
+                        <div class="flex flex-col">
+                            <label class="text-[11px] text-slate-400 font-medium mb-1 flex items-center gap-1">
+                                <span>${s.icon}</span>
+                                <span class="truncate">${s.name}</span>
+                            </label>
+                            <select onchange="updatePlayerSuitCard(${pIdx}, '${s.key}', this.value)" 
+                                class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white font-semibold focus:outline-none focus:border-sky-400">
+                                ${optionsHtml}
+                            </select>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div id="setenta-player-card-${pIdx}" class="bg-slate-900 border ${isWinner ? 'border-sky-400 shadow-md shadow-sky-950/50' : 'border-slate-700/80'} rounded-xl p-3 transition">
+                        <div class="flex items-center justify-between mb-2.5">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-sm text-white">${escapeHtml(p.name)}</span>
+                                <span id="setenta-winner-badge-${pIdx}" class="${isWinner ? '' : 'hidden'} text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/40">
+                                    +1 pt Ganador
+                                </span>
+                            </div>
+                            <div class="text-right">
+                                <span id="setenta-total-${pIdx}" class="text-base font-black ${isWinner ? 'text-sky-400' : 'text-slate-200'}">${totalPts}</span>
+                                <span class="text-[11px] text-slate-400">pts</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            ${selectsHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('') + `
+                <div id="setenta-calc-status" class="text-xs text-center font-semibold text-slate-400 pt-1"></div>
+            `;
+        }
+
+        function calculatePlayerSetenta(playerIdx) {
+            const s = draftRound.setentaSuits[playerIdx];
+            if (!s) return 0;
+            return (SETENTA_VALUES[s.oros] || 0) +
+                   (SETENTA_VALUES[s.copas] || 0) +
+                   (SETENTA_VALUES[s.espadas] || 0) +
+                   (SETENTA_VALUES[s.bastos] || 0);
+        }
+
+        function updatePlayerSuitCard(playerIdx, suitKey, cardVal) {
+            draftRound.setentaSuits[playerIdx][suitKey] = cardVal;
+            recalculateSetentaFromSuits();
+            updateDraftPreview();
+        }
+
+        function recalculateSetentaFromSuits() {
+            if (draftRound.setentaMode !== 'calc') return;
+
+            const scores = state.players.map((_, idx) => calculatePlayerSetenta(idx));
+            const maxScore = Math.max(...scores);
+            const winners = scores
+                .map((sc, idx) => ({ sc, idx }))
+                .filter(item => item.sc === maxScore && maxScore > 0);
+
+            if (winners.length === 1) {
+                draftRound.setenta = winners[0].idx;
+            } else {
+                draftRound.setenta = -1; // Empate o todos 0
+            }
+
+            // Actualizar UI de las tarjetas de setenta
+            state.players.forEach((_, idx) => {
+                const cardEl = document.getElementById(`setenta-player-card-${idx}`);
+                const badgeEl = document.getElementById(`setenta-winner-badge-${idx}`);
+                const totalEl = document.getElementById(`setenta-total-${idx}`);
+                if (!cardEl || !badgeEl || !totalEl) return;
+
+                const isWinner = draftRound.setenta === idx;
+                totalEl.textContent = scores[idx];
+                totalEl.className = `text-base font-black ${isWinner ? 'text-sky-400' : 'text-slate-200'}`;
+                cardEl.className = `bg-slate-900 border ${isWinner ? 'border-sky-400 shadow-md shadow-sky-950/50' : 'border-slate-700/80'} rounded-xl p-3 transition`;
+                if (isWinner) {
+                    badgeEl.classList.remove('hidden');
+                } else {
+                    badgeEl.classList.add('hidden');
+                }
+            });
+
+            const statusEl = document.getElementById('setenta-calc-status');
+            if (statusEl) {
+                if (draftRound.setenta !== -1) {
+                    statusEl.innerHTML = `🏆 Gana la Setenta: <span class="text-sky-400">${escapeHtml(state.players[draftRound.setenta].name)}</span> con <span class="text-white">${maxScore} puntos</span>`;
+                } else if (maxScore > 0) {
+                    statusEl.innerHTML = `⚖️ Empate a <span class="text-white">${maxScore} puntos</span> — Nadie suma punto de Setenta`;
+                } else {
+                    statusEl.textContent = 'Selecciona las cartas de cada palo';
+                }
+            }
+        }
+
+        function renderRoundModalControls() {
+            // 1. Escobas
+            const escobasContainer = document.getElementById('modal-escobas-list');
+            escobasContainer.innerHTML = state.players.map((p, idx) => `
+                <div class="flex items-center justify-between bg-slate-900 border border-slate-700/80 rounded-xl px-3.5 py-2.5">
+                    <span class="font-semibold text-sm text-slate-200 truncate pr-2">${escapeHtml(p.name)}</span>
+                    <div class="flex items-center gap-2.5 shrink-0">
+                        <button type="button" onclick="changeEscoba(${idx}, -1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold flex items-center justify-center transition active:scale-95">−</button>
+                        <span id="escoba-val-${idx}" class="w-6 text-center font-extrabold text-amber-400 text-base">${draftRound.escobas[idx]}</span>
+                        <button type="button" onclick="changeEscoba(${idx}, 1)" class="w-8 h-8 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold flex items-center justify-center transition active:scale-95">+</button>
+                    </div>
+                </div>
+            `).join('');
+
+            // Categorías de selección única (o empate/nadie)
+            renderCategoryOptions('cartas', 'modal-cartas-options', 'Empate / Nadie');
+            renderCategoryOptions('oros', 'modal-oros-options', 'Empate / Nadie');
+            renderCategoryOptions('siete', 'modal-siete-options', 'Nadie');
+            renderCategoryOptions('sietes', 'modal-sietes-options', 'Empate / Nadie');
+            renderSetentaCalculator();
+            renderCategoryOptions('setenta', 'modal-setenta-options', 'Empate / Nadie');
+        }
+
+        function renderCategoryOptions(categoryKey, containerId, noneLabel) {
+            const container = document.getElementById(containerId);
+            const selectedVal = draftRound[categoryKey];
+
+            let buttonsHtml = state.players.map((p, idx) => {
+                const isSelected = selectedVal === idx;
+                return `
+                    <button type="button" onclick="selectCategoryWinner('${categoryKey}', ${idx})" 
+                        class="py-2.5 px-3 rounded-xl border text-xs sm:text-sm font-bold truncate transition ${
+                            isSelected 
+                            ? 'bg-emerald-600 border-emerald-400 text-white shadow-md shadow-emerald-950' 
+                            : 'bg-slate-900 border-slate-700/80 text-slate-300 hover:bg-slate-800'
+                        }">
+                        ${escapeHtml(p.name)}
+                    </button>
+                `;
+            }).join('');
+
+            // Botón de Empate / Nadie
+            const isNoneSelected = selectedVal === -1;
+            buttonsHtml += `
+                <button type="button" onclick="selectCategoryWinner('${categoryKey}', -1)" 
+                    class="py-2.5 px-3 rounded-xl border text-xs sm:text-sm font-semibold transition ${
+                        isNoneSelected 
+                        ? 'bg-slate-700 border-slate-500 text-white' 
+                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:bg-slate-800'
+                    }">
+                    ${noneLabel}
+                </button>
+            `;
+
+            container.innerHTML = buttonsHtml;
+        }
+
+        function changeEscoba(playerIdx, delta) {
+            const nextVal = Math.max(0, Math.min(20, draftRound.escobas[playerIdx] + delta));
+            draftRound.escobas[playerIdx] = nextVal;
+            document.getElementById(`escoba-val-${playerIdx}`).textContent = nextVal;
+            updateDraftPreview();
+        }
+
+        function selectCategoryWinner(categoryKey, playerIdx) {
+            draftRound[categoryKey] = playerIdx;
+            const mapIds = {
+                cartas: ['modal-cartas-options', 'Empate / Nadie'],
+                oros: ['modal-oros-options', 'Empate / Nadie'],
+                siete: ['modal-siete-options', 'Nadie'],
+                sietes: ['modal-sietes-options', 'Empate / Nadie'],
+                setenta: ['modal-setenta-options', 'Empate / Nadie']
+            };
+            renderCategoryOptions(categoryKey, mapIds[categoryKey][0], mapIds[categoryKey][1]);
+            updateDraftPreview();
+        }
+
+        function calculateDraftTotals() {
+            return state.players.map((_, idx) => {
+                let total = draftRound.escobas[idx] || 0;
+                if (draftRound.cartas === idx) total += 1;
+                if (draftRound.oros === idx) total += 1;
+                if (draftRound.siete === idx) total += 1;
+                if (draftRound.sietes === idx) total += 1;
+                if (draftRound.setenta === idx) total += 1;
+                return total;
+            });
+        }
+
+        function updateDraftPreview() {
+            const totals = calculateDraftTotals();
+            const previewContainer = document.getElementById('modal-preview-summary');
+
+            previewContainer.innerHTML = state.players.map((p, idx) => `
+                <div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2 text-xs">
+                    <span class="text-slate-300 font-medium">${escapeHtml(p.name)}:</span>
+                    <span class="font-extrabold ${totals[idx] > 0 ? 'text-amber-400' : 'text-slate-500'}">+${totals[idx]} pts</span>
+                </div>
+            `).join('');
+        }
+
+        function saveRound() {
+            const roundTotals = calculateDraftTotals();
+            const setentaScores = draftRound.setentaMode === 'calc'
+                ? state.players.map((_, idx) => calculatePlayerSetenta(idx))
+                : null;
+
+            const newRound = {
+                roundNum: state.rounds.length + 1,
+                escobas: [...draftRound.escobas],
+                cartas: draftRound.cartas,
+                oros: draftRound.oros,
+                siete: draftRound.siete,
+                sietes: draftRound.sietes,
+                setenta: draftRound.setenta,
+                setentaScores,
+                roundTotals
+            };
+
+            state.rounds.push(newRound);
+            state.players.forEach((p, idx) => {
+                p.score += roundTotals[idx];
+            });
+
+            updateProfilesOnRoundSaved(newRound);
+            saveState();
+            closeRoundModal();
+            renderScoreboard();
+            renderHistory();
+            checkWinner();
+            showToast(`Mano #${newRound.roundNum} guardada`);
+        }
+
+        function undoLastRound() {
+            if (state.rounds.length === 0) return;
+
+            openConfirmModal(
+                '¿Deshacer última mano?',
+                'Se restarán los puntos de la última mano anotada.',
+                'Sí, deshacer',
+                () => {
+                    const last = state.rounds.pop();
+                    revertProfilesOnUndo(last);
+                    state.players.forEach((p, idx) => {
+                        p.score = Math.max(0, p.score - last.roundTotals[idx]);
+                    });
+                    state.ignoreWinnerBanner = false;
+                    saveState();
+                    renderScoreboard();
+                    renderHistory();
+                    checkWinner();
+                    showToast('Última mano eliminada', '↩');
+                }
+            );
+        }
+
+        // ==========================================
+        // REINICIOS Y MODALES AUXILIARES
+        // ==========================================
+        function confirmNewGame() {
+            openConfirmModal(
+                '¿Iniciar nueva partida?',
+                'Se borrará el marcador actual y volverás a la configuración de jugadores.',
+                'Nueva partida',
+                () => {
+                    state.screen = 'setup';
+                    state.rounds = [];
+                    state.players.forEach(p => p.score = 0);
+                    state.ignoreWinnerBanner = false;
+                    state.gameResultRecorded = false;
+                    state.manuallyFinished = false;
+                    saveState();
+                    renderApp();
+                }
+            );
+        }
+
+        function resetSamePlayers() {
+            state.rounds = [];
+            state.players.forEach(p => p.score = 0);
+            state.ignoreWinnerBanner = false;
+            state.gameResultRecorded = false;
+            state.manuallyFinished = false;
+            saveState();
+            renderScoreboard();
+            renderHistory();
+            checkWinner();
+            showToast('¡Marcador a cero! Nueva revancha', '🃏');
+        }
+
+        // ==========================================
+        // GESTIÓN DE PERFILES Y ESTADÍSTICAS
+        // ==========================================
+        function openProfilesModal() {
+            renderProfilesList();
+            document.getElementById('profiles-modal').classList.remove('hidden');
+        }
+
+        function closeProfilesModal() {
+            document.getElementById('profiles-modal').classList.add('hidden');
+            if (state.screen === 'setup') {
+                renderPlayerInputs();
+            }
+        }
+
+        function handleAddProfile(event) {
+            event.preventDefault();
+            const input = document.getElementById('new-profile-name');
+            const name = input.value.trim();
+            if (!name) return;
+
+            const exists = profiles.some(p => p.name.toLowerCase() === name.toLowerCase());
+            if (exists) {
+                showToast('Ya existe una persona con ese nombre', '⚠️');
+                return;
+            }
+
+            profiles.push(createProfileObject(name));
+            saveProfiles();
+            input.value = '';
+            renderProfilesList();
+            showToast(`${name} añadido a jugadores`, '👤');
+        }
+
+        function deleteProfile(profileId) {
+            const target = profiles.find(p => p.id === profileId);
+            if (!target) return;
+
+            openConfirmModal(
+                `¿Eliminar a ${target.name}?`,
+                'Se borrarán todas sus estadísticas históricas acumuladas.',
+                'Sí, eliminar',
+                () => {
+                    profiles = profiles.filter(p => p.id !== profileId);
+                    saveProfiles();
+                    renderProfilesList();
+                    showToast('Perfil eliminado', '🗑️');
+                }
+            );
+        }
+
+        function resetProfileStats(profileId) {
+            const target = profiles.find(p => p.id === profileId);
+            if (!target) return;
+
+            openConfirmModal(
+                `¿Reiniciar estadísticas de ${target.name}?`,
+                'Sus partidas ganadas, manos y récords volverán a cero.',
+                'Sí, reiniciar',
+                () => {
+                    target.gamesPlayed = 0;
+                    target.gamesWon = 0;
+                    target.handsPlayed = 0;
+                    target.handsWon = 0;
+                    target.bestHandScore = 0;
+                    target.totalEscobas = 0;
+                    target.totalPoints = 0;
+                    saveProfiles();
+                    renderProfilesList();
+                    showToast('Estadísticas reiniciadas', '🔄');
+                }
+            );
+        }
+
+        function renderProfilesList() {
+            const container = document.getElementById('profiles-list-container');
+            const countLabel = document.getElementById('profiles-count-label');
+            countLabel.textContent = `${profiles.length} ${profiles.length === 1 ? 'persona registrada' : 'personas registradas'}`;
+
+            if (profiles.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center bg-slate-950/50 border border-slate-800 rounded-2xl text-slate-400 text-sm">
+                        Aún no hay personas registradas.<br>
+                        <span class="text-xs text-slate-500">Añade jugadores arriba o escribe sus nombres al iniciar una partida para guardar sus estadísticas automáticamente.</span>
+                    </div>
+                `;
+                return;
+            }
+
+            // Ordenar por partidas ganadas, luego por manos ganadas y puntos totales
+            const sorted = [...profiles].sort((a, b) => 
+                (b.gamesWon - a.gamesWon) || 
+                (b.handsWon - a.handsWon) || 
+                (b.totalPoints - a.totalPoints)
+            );
+
+            container.innerHTML = sorted.map((p, index) => {
+                const winRate = p.gamesPlayed > 0 ? Math.round((p.gamesWon / p.gamesPlayed) * 100) : 0;
+                const avgPtsPerHand = p.handsPlayed > 0 ? (p.totalPoints / p.handsPlayed).toFixed(1) : '0.0';
+                const rankBadge = index === 0 && p.gamesWon > 0 ? '🥇' : (index === 1 && p.gamesWon > 0 ? '🥈' : (index === 2 && p.gamesWon > 0 ? '🥉' : '👤'));
+
+                return `
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2.5">
+                                <span class="text-xl">${rankBadge}</span>
+                                <div>
+                                    <h4 class="font-extrabold text-white text-base leading-tight">${escapeHtml(p.name)}</h4>
+                                    <p class="text-[11px] text-slate-400">${winRate}% efectividad en partidas · ${avgPtsPerHand} pts/mano</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="resetProfileStats('${p.id}')" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition" title="Poner estadísticas a cero">
+                                    🔄
+                                </button>
+                                <button onclick="deleteProfile('${p.id}')" class="p-2 rounded-lg bg-rose-950/70 hover:bg-rose-900 text-rose-300 text-xs transition" title="Eliminar persona">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
+                            <div class="bg-slate-900 border border-slate-800/80 rounded-xl p-2">
+                                <span class="block text-[10px] uppercase tracking-wider text-slate-400">Partidas Ganadas</span>
+                                <span class="text-base font-black text-amber-400">${p.gamesWon} <span class="text-xs font-normal text-slate-500">/ ${p.gamesPlayed}</span></span>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800/80 rounded-xl p-2">
+                                <span class="block text-[10px] uppercase tracking-wider text-slate-400">Manos Ganadas</span>
+                                <span class="text-base font-black text-emerald-400">${p.handsWon} <span class="text-xs font-normal text-slate-500">/ ${p.handsPlayed}</span></span>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800/80 rounded-xl p-2">
+                                <span class="block text-[10px] uppercase tracking-wider text-slate-400">Mejor Mano</span>
+                                <span class="text-base font-black text-sky-400">${p.bestHandScore} <span class="text-xs font-normal text-slate-500">pts</span></span>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800/80 rounded-xl p-2">
+                                <span class="block text-[10px] uppercase tracking-wider text-slate-400">Escobas Totales</span>
+                                <span class="text-sm font-extrabold text-slate-200">🧹 ${p.totalEscobas}</span>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800/80 rounded-xl p-2">
+                                <span class="block text-[10px] uppercase tracking-wider text-slate-400">Puntos Totales</span>
+                                <span class="text-sm font-extrabold text-slate-200">⭐ ${p.totalPoints}</span>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800/80 rounded-xl p-2">
+                                <span class="block text-[10px] uppercase tracking-wider text-slate-400">% Manos Ganadas</span>
+                                <span class="text-sm font-extrabold text-slate-200">${p.handsPlayed > 0 ? Math.round((p.handsWon / p.handsPlayed) * 100) : 0}%</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openRulesModal() {
+            document.getElementById('rules-modal').classList.remove('hidden');
+        }
+
+        function closeRulesModal() {
+            document.getElementById('rules-modal').classList.add('hidden');
+        }
+
+        function openConfirmModal(title, message, acceptLabel, onAccept) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            const btn = document.getElementById('confirm-accept-btn');
+            btn.textContent = acceptLabel;
+            btn.onclick = () => {
+                closeConfirmModal();
+                onAccept();
+            };
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
